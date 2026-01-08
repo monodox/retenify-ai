@@ -70,7 +70,8 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
-.env.example
+# .env.example - commented out to allow pushing example file
+# .env.example
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -86,7 +87,8 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public - commented out to allow pushing public folder
+# public
 
 # Vuepress build output
 .vuepress/dist
