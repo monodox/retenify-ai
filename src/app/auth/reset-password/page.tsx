@@ -1,7 +1,64 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Lock, KeyRound } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function ResetPasswordPage() {
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          // User is in password recovery mode
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 8) {
+      setMessage('Password must be at least 8 characters long')
+      setLoading(false)
+      return
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Password updated successfully!')
+      setTimeout(() => {
+        router.push('/console')
+      }, 2000)
+    }
+    setLoading(false)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -16,7 +73,7 @@ export default function ResetPasswordPage() {
             Enter your new password below.
           </p>
         </div>
-        <form className="mt-8 space-y-6" action="#" method="POST">
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="password" className="sr-only">
@@ -32,6 +89,8 @@ export default function ResetPasswordPage() {
                   type="password"
                   autoComplete="new-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                   placeholder="New password"
                 />
@@ -51,12 +110,20 @@ export default function ResetPasswordPage() {
                   type="password"
                   autoComplete="new-password"
                   required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                   placeholder="Confirm new password"
                 />
               </div>
             </div>
           </div>
+
+          {message && (
+            <div className={`text-sm text-center ${message.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+              {message}
+            </div>
+          )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <div className="text-sm text-blue-800">
@@ -73,9 +140,10 @@ export default function ResetPasswordPage() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
             >
-              Reset password
+              {loading ? 'Updating...' : 'Reset password'}
             </button>
           </div>
 

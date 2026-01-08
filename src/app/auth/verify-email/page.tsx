@@ -1,7 +1,57 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Mail, CheckCircle, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function VerifyEmailPage() {
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [email, setEmail] = useState('')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          router.push('/console')
+        }
+      }
+    )
+
+    // Get email from URL params or session
+    const getEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email) {
+        setEmail(user.email)
+      }
+    }
+    getEmail()
+
+    return () => subscription.unsubscribe()
+  }, [supabase, router])
+
+  const handleResendEmail = async () => {
+    setLoading(true)
+    setMessage('')
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Verification email sent! Check your inbox.')
+    }
+    setLoading(false)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -13,7 +63,7 @@ export default function VerifyEmailPage() {
             Verify your email
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            We&apos;ve sent a verification link to your email address. Please check your inbox and click the link to verify your account.
+            We&apos;ve sent a verification link to {email && <span className="font-medium">{email}</span>}. Please check your inbox and click the link to verify your account.
           </p>
         </div>
 
@@ -35,13 +85,21 @@ export default function VerifyEmailPage() {
           </div>
         </div>
 
+        {message && (
+          <div className={`text-sm text-center ${message.includes('sent') ? 'text-green-600' : 'text-red-600'}`}>
+            {message}
+          </div>
+        )}
+
         <div className="space-y-4">
           <button
             type="button"
-            className="group relative w-full flex justify-center items-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            onClick={handleResendEmail}
+            disabled={loading || !email}
+            className="group relative w-full flex justify-center items-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Resend verification email
+            {loading ? 'Sending...' : 'Resend verification email'}
           </button>
 
           <div className="text-center space-y-2">
