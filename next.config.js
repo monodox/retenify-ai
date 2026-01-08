@@ -1,12 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@genkit-ai/ai', '@genkit-ai/core', '@genkit-ai/googleai']
-  },
-  webpack: (config) => {
-    config.ignoreWarnings = [/googleai\/gemini-pro-vision/]
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        process: false,
+      }
+    }
     return config
-  }
+  },
 }
 
 module.exports = nextConfig

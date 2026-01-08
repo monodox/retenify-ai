@@ -1,7 +1,9 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Menu, PanelLeftClose, PanelLeftOpen, LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 interface ConsoleHeaderProps {
   onMenuClick?: () => void
@@ -10,6 +12,14 @@ interface ConsoleHeaderProps {
 }
 
 export function ConsoleHeader({ onMenuClick, onSidebarToggle, isSidebarCollapsed }: ConsoleHeaderProps) {
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4">
@@ -39,8 +49,19 @@ export function ConsoleHeader({ onMenuClick, onSidebarToggle, isSidebarCollapsed
           <span className="sr-only">Toggle Sidebar</span>
         </Button>
 
-        {/* Empty space to maintain header structure */}
+        {/* Spacer */}
         <div className="flex-1" />
+
+        {/* Logout button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleLogout}
+          className="ml-2"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="sr-only">Logout</span>
+        </Button>
       </div>
     </header>
   )
